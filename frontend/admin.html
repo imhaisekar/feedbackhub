@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FeedbackHub — Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #07070d;
+      --accent: #7c6cff;
+      --accent2: #c084fc;
+      --text: #f0eeff;
+      --muted: #7a7990;
+      --border: rgba(255,255,255,0.07);
+      --card: rgba(255,255,255,0.03);
+      --success: #4ade80;
+      --error: #f87171;
+      --warning: #fbbf24;
+      --sidebar: 220px;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+
+    /* Ambient */
+    .ambient { position: fixed; pointer-events: none; z-index: 0; border-radius: 50%; filter: blur(130px); opacity: 0.07; }
+    .a1 { width: 700px; height: 700px; background: var(--accent); top: -300px; left: 100px; }
+    .a2 { width: 500px; height: 500px; background: var(--accent2); bottom: -200px; right: -100px; }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar); background: rgba(255,255,255,0.018);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; height: 100vh;
+      padding: 24px 14px; z-index: 100;
+    }
+    .sidebar-logo {
+      font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800;
+      padding: 0 8px; margin-bottom: 32px;
+    }
+    .sidebar-logo span { color: var(--accent2); }
+    .nav-section { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; padding: 0 10px; margin: 16px 0 8px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 9px;
+      color: var(--muted); font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s; margin-bottom: 2px;
+      border: none; background: none; width: 100%; text-align: left;
+      font-family: 'Inter', sans-serif; position: relative;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+    .nav-item.active { background: rgba(124,108,255,0.12); color: var(--text); border: 1px solid rgba(124,108,255,0.2); }
+    .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+    .nav-badge {
+      margin-left: auto; background: var(--error);
+      color: white; font-size: 10px; font-weight: 700;
+      padding: 2px 6px; border-radius: 20px; display: none;
+    }
+    .nav-badge.show { display: block; }
+    .sidebar-bottom { margin-top: auto; }
+    .admin-card {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px; margin-bottom: 10px;
+    }
+    .admin-avatar {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; margin-bottom: 8px;
+    }
+    .admin-name { font-size: 13px; font-weight: 600; }
+    .admin-role { font-size: 11px; color: var(--muted); }
+    .btn-logout {
+      width: 100%; padding: 9px; border-radius: 8px;
+      background: rgba(248,113,113,0.07); border: 1px solid rgba(248,113,113,0.15);
+      color: var(--error); font-size: 12px; font-weight: 500;
+      cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s;
+    }
+    .btn-logout:hover { background: rgba(248,113,113,0.15); }
+
+    /* Main */
+    .main { margin-left: var(--sidebar); flex: 1; padding: 36px 36px; position: relative; z-index: 10; min-height: 100vh; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Page header */
+    .page-head { margin-bottom: 28px; }
+    .greeting { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+    .greeting strong { color: var(--accent2); }
+    .page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; }
+
+    /* Stat cards */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .stat {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px; position: relative; overflow: hidden;
+    }
+    .stat::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      border-radius: 2px 2px 0 0;
+    }
+    .stat.s1::after { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+    .stat.s2::after { background: var(--warning); }
+    .stat.s3::after { background: var(--success); }
+    .stat.s4::after { background: #06b6d4; }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+    .stat-val { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; line-height: 1; }
+    .stat-icon { position: absolute; top: 16px; right: 16px; font-size: 20px; opacity: 0.2; }
+    .stat-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+    /* Charts row */
+    .charts-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+    .chart-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 22px;
+    }
+    .chart-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 18px; }
+
+    /* Pulse wall on dashboard */
+    .pulse-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+    .pulse-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); animation: blink 2s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,0.5);} 50%{box-shadow:0 0 0 5px rgba(74,222,128,0);} }
+    .pulse-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+    .pulse-item {
+      padding: 11px 13px; border-radius: 10px; margin-bottom: 8px;
+      background: rgba(255,255,255,0.025); border: 1px solid var(--border);
+      animation: fadeUp 0.4s ease;
+    }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(-8px);} to{opacity:1;transform:translateY(0);} }
+    .pi-name { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+    .pi-stars { font-size: 10px; margin-bottom: 3px; }
+    .pi-msg { font-size: 11px; color: var(--muted); line-height: 1.5; display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+
+    /* Recent table on dashboard */
+    .recent-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+    .recent-head { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .recent-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+    .view-all { font-size: 12px; color: var(--accent2); background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; }
+
+    /* Full feedback table */
+    .table-toolbar {
+      display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;
+    }
+    .search-wrap { position: relative; flex: 1; min-width: 200px; }
+    .search-wrap input {
+      width: 100%; background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 14px 10px 36px;
+      color: var(--text); font-size: 13px; font-family: 'Inter', sans-serif;
+      outline: none; transition: border-color 0.2s;
+    }
+    .search-wrap input:focus { border-color: var(--accent); }
+    .search-wrap input::placeholder { color: var(--muted); }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; pointer-events: none; }
+    .filter-sel {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 14px; color: var(--text);
+      font-size: 13px; font-family: 'Inter', sans-serif; outline: none; cursor: pointer;
+    }
+    .filter-sel option { background: #0d0d1f; }
+    .btn-export {
+      padding: 10px 16px; border-radius: 10px; margin-left: auto;
+      background: rgba(124,108,255,0.1); border: 1px solid rgba(124,108,255,0.25);
+      color: var(--accent); font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-export:hover { background: rgba(124,108,255,0.2); }
+
+    .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      padding: 12px 16px; text-align: left;
+      font-size: 10px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    td {
+      padding: 14px 16px; font-size: 13px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.015); }
+    .td-user-name { font-weight: 500; font-size: 13px; }
+    .td-user-email { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .td-title { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .badge { font-size: 10px; padding: 3px 9px; border-radius: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+    .badge-pending { background: rgba(251,191,36,0.12); color: var(--warning); }
+    .badge-approved { background: rgba(74,222,128,0.12); color: var(--success); }
+    .badge-rejected { background: rgba(248,113,113,0.12); color: var(--error); }
+
+    /* Action modal */
+    .action-btns { display: flex; gap: 6px; }
+    .btn-approve, .btn-reject, .btn-view {
+      padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+      cursor: pointer; font-family: 'Inter', sans-serif; border: none; transition: all 0.2s;
+    }
+    .btn-approve { background: rgba(74,222,128,0.12); color: var(--success); }
+    .btn-approve:hover { background: rgba(74,222,128,0.25); }
+    .btn-reject { background: rgba(248,113,113,0.12); color: var(--error); }
+    .btn-reject:hover { background: rgba(248,113,113,0.25); }
+    .btn-view { background: rgba(124,108,255,0.12); color: var(--accent); }
+    .btn-view:hover { background: rgba(124,108,255,0.25); }
+
+    /* Pagination */
+    .pagination { display: flex; justify-content: center; gap: 6px; padding: 16px; }
+    .pg-btn {
+      padding: 7px 13px; border-radius: 8px;
+      background: var(--card); border: 1px solid var(--border);
+      color: var(--muted); font-size: 12px; cursor: pointer;
+      font-family: 'Inter', sans-serif; transition: all 0.2s;
+    }
+    .pg-btn.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; border-color: transparent; }
+    .pg-btn:hover:not(.active) { border-color: var(--accent); color: var(--text); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px); z-index: 1000;
+      display: none; align-items: center; justify-content: center; padding: 24px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #0f0f1a; border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px; max-width: 520px; width: 100%;
+      animation: modalIn 0.25s ease;
+    }
+    @keyframes modalIn { from{opacity:0;transform:scale(0.96);} to{opacity:1;transform:scale(1);} }
+    .modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+    .modal-field { margin-bottom: 14px; }
+    .modal-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
+    .modal-value { font-size: 14px; color: var(--text); line-height: 1.6; }
+    .modal-value.muted { color: var(--muted); }
+    .modal-note {
+      width: 100%; background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 14px; color: var(--text);
+      font-size: 13px; font-family: 'Inter', sans-serif;
+      outline: none; resize: none; height: 80px;
+      transition: border-color 0.2s; margin-top: 5px;
+    }
+    .modal-note:focus { border-color: var(--accent); }
+    .modal-note::placeholder { color: var(--muted); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-btn {
+      flex: 1; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: 'Inter', sans-serif; border: none; transition: all 0.2s;
+    }
+    .modal-btn.approve { background: rgba(74,222,128,0.15); color: var(--success); border: 1px solid rgba(74,222,128,0.3); }
+    .modal-btn.approve:hover { background: rgba(74,222,128,0.25); }
+    .modal-btn.reject { background: rgba(248,113,113,0.15); color: var(--error); border: 1px solid rgba(248,113,113,0.3); }
+    .modal-btn.reject:hover { background: rgba(248,113,113,0.25); }
+    .modal-btn.cancel { background: var(--card); color: var(--muted); border: 1px solid var(--border); }
+    .modal-btn.cancel:hover { color: var(--text); }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      padding: 13px 18px; border-radius: 12px; font-size: 13px; font-weight: 500;
+      transform: translateY(60px); opacity: 0; transition: all 0.3s; pointer-events: none;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.25); color: var(--success); }
+    #toast.error { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.25); color: var(--error); }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .empty-icon { font-size: 36px; margin-bottom: 12px; }
+    .empty-text { font-size: 13px; line-height: 1.7; }
+
+    /* Skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite; border-radius: 6px;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 20px; }
+      .stats { grid-template-columns: repeat(2,1fr); }
+      .charts-row { grid-template-columns: 1fr; }
+      .pulse-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient a1"></div>
+  <div class="ambient a2"></div>
+  <div id="toast"></div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-title" id="modalTitle">Review Feedback</div>
+      <div class="modal-field"><div class="modal-label">From</div><div class="modal-value" id="mUser">—</div></div>
+      <div class="modal-field"><div class="modal-label">Category</div><div class="modal-value" id="mCat">—</div></div>
+      <div class="modal-field"><div class="modal-label">Title</div><div class="modal-value" id="mTitle">—</div></div>
+      <div class="modal-field"><div class="modal-label">Message</div><div class="modal-value muted" id="mMsg">—</div></div>
+      <div class="modal-field"><div class="modal-label">Rating</div><div class="modal-value" id="mRating">—</div></div>
+      <div class="modal-field">
+        <div class="modal-label">Admin Note <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(optional — sent to user via email)</span></div>
+        <textarea class="modal-note" id="modalNote" placeholder="Add a note for the user..."></textarea>
+      </div>
+      <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">Feedback<span>Hub</span></div>
+    <div class="nav-section">Overview</div>
+    <button class="nav-item active" onclick="showPage('dashboard',this)">
+      <span class="nav-icon">📊</span> Dashboard
+    </button>
+    <div class="nav-section">Manage</div>
+    <button class="nav-item" onclick="showPage('feedbacks',this)">
+      <span class="nav-icon">💬</span> All Feedback
+      <span class="nav-badge" id="navBadge"></span>
+    </button>
+    <div class="sidebar-bottom">
+      <div class="admin-card">
+        <div class="admin-avatar">👤</div>
+        <div class="admin-name" id="sidebarName">Admin</div>
+        <div class="admin-role">Administrator</div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main">
+
+    <!-- DASHBOARD PAGE -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-head">
+        <div class="greeting">Good <span id="timeGreeting">morning</span>, <strong id="adminGreetName">—</strong> 👋</div>
+        <div class="page-title">Here's what's happening today.</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat s1">
+          <div class="stat-label">Total Feedback</div>
+          <div class="stat-val" id="statTotal"><div class="skeleton" style="width:60px;height:32px"></div></div>
+          <div class="stat-icon">💬</div>
+          <div class="stat-sub" id="statTotalSub">—</div>
+        </div>
+        <div class="stat s2">
+          <div class="stat-label">Pending Review</div>
+          <div class="stat-val" id="statPending"><div class="skeleton" style="width:60px;height:32px"></div></div>
+          <div class="stat-icon">⏳</div>
+          <div class="stat-sub">Needs attention</div>
+        </div>
+        <div class="stat s3">
+          <div class="stat-label">Approved</div>
+          <div class="stat-val" id="statApproved"><div class="skeleton" style="width:60px;height:32px"></div></div>
+          <div class="stat-icon">✅</div>
+          <div class="stat-sub" id="statApprovedSub">—</div>
+        </div>
+        <div class="stat s4">
+          <div class="stat-label">Avg Rating</div>
+          <div class="stat-val" id="statRating"><div class="skeleton" style="width:60px;height:32px"></div></div>
+          <div class="stat-icon">⭐</div>
+          <div class="stat-sub">Out of 5.0</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">Submissions — Last 7 Days</div>
+          <canvas id="activityChart" height="110"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">By Category</div>
+          <canvas id="categoryChart" height="110"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Rating Distribution</div>
+          <canvas id="ratingChart" height="110"></canvas>
+        </div>
+      </div>
+
+      <!-- Pulse + Recent -->
+      <div class="pulse-row">
+        <!-- Live Pulse Wall -->
+        <div class="chart-card">
+          <div class="pulse-header">
+            <div class="pulse-dot"></div>
+            <div class="pulse-label">Live Pulse — Top Responses</div>
+          </div>
+          <div id="dashPulse">
+            <div class="empty-state"><div class="empty-icon">📡</div><div class="empty-text">Approved 4★+ feedback appears here automatically.</div></div>
+          </div>
+        </div>
+
+        <!-- Recent Pending -->
+        <div class="recent-card">
+          <div class="recent-head">
+            <div class="recent-title">Needs Review</div>
+            <button class="view-all" onclick="showPage('feedbacks', document.querySelectorAll('.nav-item')[1])">View all →</button>
+          </div>
+          <div id="recentPending"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEEDBACKS PAGE -->
+    <div id="page-feedbacks" class="page">
+      <div class="page-head">
+        <div class="page-title">All Feedback</div>
+      </div>
+
+      <div class="table-toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search by name, email or title..." oninput="debounceSearch()"/>
+        </div>
+        <select class="filter-sel" id="filterStatus" onchange="loadFeedbacks(1)">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <select class="filter-sel" id="filterCategory" onchange="loadFeedbacks(1)">
+          <option value="">All Categories</option>
+          <option>General</option>
+          <option>Bug Report</option>
+          <option>Feature Request</option>
+          <option>Complaint</option>
+          <option>Suggestion</option>
+        </select>
+        <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Rating</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="feedbackTable">
+            <tr><td colspan="7"><div class="empty-state"><div class="skeleton" style="height:16px;margin-bottom:8px"></div><div class="skeleton" style="height:16px;width:60%"></div></div></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API = 'http://localhost:5000/api';
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const token = localStorage.getItem('token');
+    if (!user || user.role !== 'admin') window.location.href = 'index.html';
+
+    // Greetings
+    document.getElementById('sidebarName').textContent = user?.name || 'Admin';
+    document.getElementById('adminGreetName').textContent = user?.name?.split(' ')[0] || 'Admin';
+    const hour = new Date().getHours();
+    document.getElementById('timeGreeting').textContent = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+
+    let currentPage = 1;
+    let searchTimer;
+    let currentFeedbackId = null;
+    let actChart, catChart, ratChart;
+
+    // ---- PAGE NAV ----
+    function showPage(name, el) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById(`page-${name}`).classList.add('active');
+      el.classList.add('active');
+      if (name === 'dashboard') loadDashboard();
+      if (name === 'feedbacks') loadFeedbacks(1);
+    }
+
+    // ---- TOAST ----
+    function toast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.className = `show ${type}`;
+      setTimeout(() => t.className = '', 3000);
+    }
+
+    // ---- DASHBOARD ----
+    async function loadDashboard() {
+      try {
+        const res = await fetch(`${API}/admin/analytics`, { headers:{'Authorization':`Bearer ${token}`} });
+        const d = await res.json();
+
+        document.getElementById('statTotal').textContent = d.total;
+        document.getElementById('statPending').textContent = d.pending;
+        document.getElementById('statApproved').textContent = d.approved;
+        document.getElementById('statRating').textContent = d.avgRating || '—';
+
+        const pct = d.total ? Math.round((d.approved / d.total) * 100) : 0;
+        document.getElementById('statApprovedSub').textContent = `${pct}% approval rate`;
+        document.getElementById('statTotalSub').textContent = `${d.totalUsers} verified users`;
+
+        // Badge
+        if (d.pending > 0) {
+          document.getElementById('navBadge').textContent = d.pending;
+          document.getElementById('navBadge').classList.add('show');
+        }
+
+        buildCharts(d);
+        loadPulse();
+        loadRecentPending();
+      } catch { toast('Failed to load analytics.', 'error'); }
+    }
+
+    function buildCharts(d) {
+      const gridColor = 'rgba(255,255,255,0.04)';
+      const tickColor = '#7a7990';
+
+      if (actChart) actChart.destroy();
+      actChart = new Chart(document.getElementById('activityChart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: d.recentActivity.map(r => {
+            const dt = new Date(r._id);
+            return dt.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+          }),
+          datasets: [{
+            label: 'Submissions',
+            data: d.recentActivity.map(r => r.count),
+            borderColor: '#7c6cff',
+            backgroundColor: 'rgba(124,108,255,0.08)',
+            fill: true, tension: 0.4,
+            pointBackgroundColor: '#c084fc',
+            pointRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks:{color:tickColor,font:{size:11}}, grid:{color:gridColor} },
+            y: { ticks:{color:tickColor,stepSize:1,font:{size:11}}, grid:{color:gridColor}, beginAtZero:true }
+          }
+        }
+      });
+
+      if (catChart) catChart.destroy();
+      catChart = new Chart(document.getElementById('categoryChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: d.byCategory.map(c => c._id),
+          datasets: [{
+            data: d.byCategory.map(c => c.count),
+            backgroundColor: ['#7c6cff','#c084fc','#06b6d4','#4ade80','#fbbf24'],
+            borderWidth: 0, hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true, cutout: '68%',
+          plugins: { legend: { labels: { color: tickColor, font:{size:11}, boxWidth:10 } } }
+        }
+      });
+
+      if (ratChart) ratChart.destroy();
+      const ratingLabels = ['1★','2★','3★','4★','5★'];
+      const ratingData = [0,0,0,0,0];
+      d.byRating.forEach(r => { if (r._id >= 1 && r._id <= 5) ratingData[r._id-1] = r.count; });
+      ratChart = new Chart(document.getElementById('ratingChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: ratingLabels,
+          datasets: [{
+            data: ratingData,
+            backgroundColor: ['#f87171','#fb923c','#fbbf24','#a3e635','#4ade80'],
+            borderRadius: 6, borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks:{color:tickColor,font:{size:11}}, grid:{color:gridColor} },
+            y: { ticks:{color:tickColor,stepSize:1,font:{size:11}}, grid:{color:gridColor}, beginAtZero:true }
+          }
+        }
+      });
+    }
+
+    async function loadPulse() {
+      try {
+        const res = await fetch(`${API}/feedback/pulse`);
+        const data = await res.json();
+        const el = document.getElementById('dashPulse');
+        if (!data.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📡</div><div class="empty-text">Approved 4★+ feedback will appear here.</div></div>'; return; }
+        el.innerHTML = data.slice(0,4).map(f => `
+          <div class="pulse-item">
+            <div class="pi-name">${f.userName.split(' ')[0]} ${f.userName.split(' ')[1]?.[0]||''}.&nbsp;<span style="color:var(--muted);font-size:10px;font-weight:400">${f.category}</span></div>
+            <div class="pi-stars">${'⭐'.repeat(f.rating)}</div>
+            <div class="pi-msg">"${f.message}"</div>
+          </div>`).join('');
+      } catch {}
+    }
+
+    async function loadRecentPending() {
+      try {
+        const res = await fetch(`${API}/admin/feedbacks?status=pending&limit=5`, { headers:{'Authorization':`Bearer ${token}`} });
+        const d = await res.json();
+        const el = document.getElementById('recentPending');
+        if (!d.feedbacks.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">All caught up! No pending reviews.</div></div>'; return; }
+        el.innerHTML = d.feedbacks.map(f => `
+          <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div>
+              <div style="font-size:13px;font-weight:500;margin-bottom:2px">${f.title}</div>
+              <div style="font-size:11px;color:var(--muted)">${f.userName} · ${f.category}</div>
+            </div>
+            <button class="btn-view" onclick="openModal('${f._id}','${escHtml(f.userName)}','${escHtml(f.userEmail)}','${escHtml(f.category)}','${escHtml(f.title)}','${escHtml(f.message)}',${f.rating||0},'${f.status}')">Review</button>
+          </div>`).join('');
+      } catch {}
+    }
+
+    // ---- FEEDBACKS PAGE ----
+    function debounceSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => loadFeedbacks(1), 400);
+    }
+
+    async function loadFeedbacks(page = 1) {
+      currentPage = page;
+      const status = document.getElementById('filterStatus').value;
+      const category = document.getElementById('filterCategory').value;
+      const search = document.getElementById('searchInput').value.trim();
+
+      let url = `${API}/admin/feedbacks?page=${page}&limit=10`;
+      if (status) url += `&status=${status}`;
+      if (category) url += `&category=${encodeURIComponent(category)}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+
+      const tbody = document.getElementById('feedbackTable');
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="skeleton" style="height:14px;margin-bottom:8px"></div><div class="skeleton" style="height:14px;width:50%"></div></div></td></tr>`;
+
+      try {
+        const res = await fetch(url, { headers:{'Authorization':`Bearer ${token}`} });
+        const d = await res.json();
+
+        if (!d.feedbacks.length) {
+          tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No feedback matches your filters.</div></div></td></tr>`;
+          document.getElementById('pagination').innerHTML = '';
+          return;
+        }
+
+        tbody.innerHTML = d.feedbacks.map(f => `
+          <tr>
+            <td>
+              <div class="td-user-name">${f.userName}</div>
+              <div class="td-user-email">${f.userEmail}</div>
+            </td>
+            <td><div class="td-title" title="${escHtml(f.title)}">${f.title}</div></td>
+            <td><span style="font-size:12px;color:var(--muted)">${f.category}</span></td>
+            <td>${f.rating ? '⭐'.repeat(f.rating) : '<span style="color:var(--muted)">—</span>'}</td>
+            <td><span class="badge badge-${f.status}">${f.status}</span></td>
+            <td style="font-size:12px;color:var(--muted)">${new Date(f.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'})}</td>
+            <td>
+              <div class="action-btns">
+                <button class="btn-view" onclick="openModal('${f._id}','${escHtml(f.userName)}','${escHtml(f.userEmail)}','${escHtml(f.category)}','${escHtml(f.title)}','${escHtml(f.message)}',${f.rating||0},'${f.status}')">View</button>
+                ${f.status === 'pending' ? `
+                  <button class="btn-approve" onclick="quickAction('${f._id}','approved')">✓</button>
+                  <button class="btn-reject" onclick="quickAction('${f._id}','rejected')">✕</button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>`).join('');
+
+        // Pagination
+        const pg = document.getElementById('pagination');
+        pg.innerHTML = '';
+        for (let i = 1; i <= d.pages; i++) {
+          pg.innerHTML += `<button class="pg-btn ${i===page?'active':''}" onclick="loadFeedbacks(${i})">${i}</button>`;
+        }
+      } catch { toast('Failed to load feedback.', 'error'); }
+    }
+
+    // ---- MODAL ----
+    function escHtml(str) {
+      return String(str||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');
+    }
+
+    function openModal(id, name, email, cat, title, msg, rating, status) {
+      currentFeedbackId = id;
+      document.getElementById('modalTitle').textContent = status === 'pending' ? 'Review Feedback' : 'Feedback Detail';
+      document.getElementById('mUser').textContent = `${name} (${email})`;
+      document.getElementById('mCat').textContent = cat;
+      document.getElementById('mTitle').textContent = title;
+      document.getElementById('mMsg').textContent = msg;
+      document.getElementById('mRating').textContent = rating ? '⭐'.repeat(rating) + ` (${rating}/5)` : 'Not rated';
+      document.getElementById('modalNote').value = '';
+
+      const actions = document.getElementById('modalActions');
+      if (status === 'pending') {
+        actions.innerHTML = `
+          <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+          <button class="modal-btn reject" onclick="moderate('rejected')">Reject</button>
+          <button class="modal-btn approve" onclick="moderate('approved')">Approve ✓</button>`;
+      } else {
+        actions.innerHTML = `<button class="modal-btn cancel" style="flex:0;padding:12px 24px" onclick="closeModal()">Close</button>`;
+      }
+      document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('open');
+      currentFeedbackId = null;
+    }
+    document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+    async function moderate(status) {
+      const note = document.getElementById('modalNote').value.trim();
+      try {
+        const res = await fetch(`${API}/admin/feedback/${currentFeedbackId}`, {
+          method:'PATCH',
+          headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+          body: JSON.stringify({ status, adminNote: note })
+        });
+        if (!res.ok) throw new Error();
+        closeModal();
+        toast(`Feedback ${status} ✓ — user notified via email.`);
+        loadFeedbacks(currentPage);
+        loadRecentPending();
+      } catch { toast('Action failed. Try again.', 'error'); }
+    }
+
+    async function quickAction(id, status) {
+      currentFeedbackId = id;
+      await moderate(status);
+    }
+
+    async function exportCSV() {
+      try {
+        const res = await fetch(`${API}/admin/export/csv`, { headers:{'Authorization':`Bearer ${token}`} });
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'feedbackhub-export.csv'; a.click();
+        toast('CSV exported successfully ✓');
+      } catch { toast('Export failed.', 'error'); }
+    }
+
+    function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+
+    // Auto refresh dashboard every 30s
+    loadDashboard();
+    setInterval(() => {
+      if (document.getElementById('page-dashboard').classList.contains('active')) loadDashboard();
+    }, 30000);
+  </script>
+</body>
+</html>

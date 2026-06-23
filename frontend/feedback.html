@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FeedbackHub — Submit Feedback</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #07070d;
+      --accent: #7c6cff;
+      --accent2: #c084fc;
+      --text: #f0eeff;
+      --muted: #7a7990;
+      --border: rgba(255,255,255,0.07);
+      --card: rgba(255,255,255,0.03);
+      --success: #4ade80;
+      --error: #f87171;
+      --warning: #fbbf24;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* Ambient */
+    .ambient {
+      position: fixed; pointer-events: none; z-index: 0;
+      border-radius: 50%; filter: blur(120px); opacity: 0.1;
+    }
+    .a1 { width: 600px; height: 600px; background: var(--accent); top: -200px; left: -100px; }
+    .a2 { width: 500px; height: 500px; background: var(--accent2); bottom: -150px; right: -100px; }
+
+    /* Nav */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 40px; border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 100;
+      background: rgba(7,7,13,0.85);
+    }
+    .nav-logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; }
+    .nav-logo span { color: var(--accent2); }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-greeting { font-size: 13px; color: var(--muted); }
+    .nav-greeting strong { color: var(--text); }
+    .btn-sm {
+      padding: 7px 14px; border-radius: 8px;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      font-family: 'Inter', sans-serif; border: 1px solid var(--border);
+      background: var(--card); color: var(--muted); transition: all 0.2s;
+    }
+    .btn-sm:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+
+    /* Layout */
+    .container { max-width: 1100px; margin: 0 auto; padding: 44px 24px; position: relative; z-index: 10; }
+    .grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; }
+
+    /* Cards */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px;
+    }
+    .card-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px; }
+
+    /* Form */
+    .category-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 24px; }
+    .cat-btn {
+      padding: 10px 8px; border-radius: 10px; text-align: center;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      border: 1px solid var(--border); background: var(--card);
+      color: var(--muted); transition: all 0.2s; font-family: 'Inter', sans-serif;
+    }
+    .cat-btn:hover { border-color: rgba(124,108,255,0.4); color: var(--text); }
+    .cat-btn.active {
+      background: rgba(124,108,255,0.15);
+      border-color: rgba(124,108,255,0.5); color: var(--text);
+    }
+    .cat-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+
+    label {
+      display: block; font-size: 11px; font-weight: 600;
+      color: var(--muted); letter-spacing: 0.1em;
+      text-transform: uppercase; margin-bottom: 7px;
+    }
+    input, textarea {
+      width: 100%; background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 13px 16px; color: var(--text);
+      font-size: 14px; font-family: 'Inter', sans-serif;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 20px;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,108,255,0.12); }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+    textarea { resize: none; height: 120px; }
+
+    /* Mood border glow */
+    .form-card { transition: box-shadow 0.4s; }
+    .mood-low  { box-shadow: 0 0 0 1px rgba(248,113,113,0.3), 0 0 30px rgba(248,113,113,0.06); }
+    .mood-mid  { box-shadow: 0 0 0 1px rgba(251,191,36,0.3), 0 0 30px rgba(251,191,36,0.06); }
+    .mood-high { box-shadow: 0 0 0 1px rgba(74,222,128,0.3), 0 0 30px rgba(74,222,128,0.06); }
+
+    /* Stars */
+    .stars-row { display: flex; gap: 6px; margin-bottom: 20px; }
+    .star { font-size: 26px; cursor: pointer; transition: transform 0.15s; opacity: 0.3; }
+    .star.lit { opacity: 1; transform: scale(1.05); }
+    .star:hover { opacity: 1; transform: scale(1.15); }
+
+    /* Char counter */
+    .textarea-wrap { position: relative; margin-bottom: 20px; }
+    .textarea-wrap textarea { margin-bottom: 0; }
+    .char-count {
+      position: absolute; bottom: 12px; right: 14px;
+      font-size: 11px; color: var(--muted); pointer-events: none;
+    }
+    .char-count.near { color: var(--warning); }
+    .char-count.over { color: var(--error); }
+
+    .btn {
+      width: 100%; padding: 14px; border: none; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white; font-size: 14px; font-weight: 600;
+      cursor: pointer; font-family: 'Inter', sans-serif;
+      transition: opacity 0.2s, transform 0.1s; position: relative;
+    }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-loading::after {
+      content: ''; position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+
+    .msg { padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .msg.success { background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); color: var(--success); display: block; }
+    .msg.error { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); color: var(--error); display: block; }
+
+    /* Sidebar */
+    .sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+    /* History */
+    .fi {
+      padding: 14px; border-radius: 12px;
+      background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+      margin-bottom: 10px; transition: border-color 0.2s;
+    }
+    .fi:hover { border-color: rgba(124,108,255,0.25); }
+    .fi-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .fi-title { font-size: 13px; font-weight: 500; line-height: 1.4; padding-right: 8px; }
+    .badge { font-size: 10px; padding: 3px 8px; border-radius: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+    .badge-pending { background: rgba(251,191,36,0.12); color: var(--warning); }
+    .badge-approved { background: rgba(74,222,128,0.12); color: var(--success); }
+    .badge-rejected { background: rgba(248,113,113,0.12); color: var(--error); }
+    .fi-meta { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .fi-note { font-size: 11px; color: var(--muted); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); font-style: italic; }
+
+    /* Pulse Wall */
+    .pulse-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.4); } 50% { box-shadow: 0 0 0 6px rgba(74,222,128,0); } }
+    .pulse-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+    .pulse-list { display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow: hidden; position: relative; }
+    .pulse-item {
+      padding: 12px 14px; border-radius: 10px;
+      background: rgba(255,255,255,0.025); border: 1px solid var(--border);
+      animation: slideIn 0.4s ease;
+    }
+    @keyframes slideIn { from { opacity:0; transform: translateY(-10px); } to { opacity:1; transform: translateY(0); } }
+    .pulse-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .pulse-stars { font-size: 11px; margin-bottom: 4px; }
+    .pulse-msg { font-size: 12px; color: var(--muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    .empty-state { text-align: center; padding: 32px 16px; color: var(--muted); }
+    .empty-icon { font-size: 32px; margin-bottom: 10px; }
+    .empty-text { font-size: 13px; line-height: 1.6; }
+
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+      nav { padding: 14px 16px; }
+      .container { padding: 24px 16px; }
+      .category-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient a1"></div>
+  <div class="ambient a2"></div>
+
+  <nav>
+    <div class="nav-logo">Feedback<span>Hub</span></div>
+    <div class="nav-right">
+      <div class="nav-greeting">Hey, <strong id="navName">—</strong> 👋</div>
+      <button class="btn-sm" onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="grid">
+
+      <!-- Left: Submit Form -->
+      <div>
+        <div class="card form-card" id="formCard">
+          <div class="card-title">Share your feedback</div>
+          <div id="formMsg" class="msg"></div>
+
+          <label>Category</label>
+          <div class="category-grid">
+            <button class="cat-btn active" data-cat="General" onclick="setCategory(this)"><span class="cat-icon">💬</span>General</button>
+            <button class="cat-btn" data-cat="Bug Report" onclick="setCategory(this)"><span class="cat-icon">🐛</span>Bug Report</button>
+            <button class="cat-btn" data-cat="Feature Request" onclick="setCategory(this)"><span class="cat-icon">✨</span>Feature</button>
+            <button class="cat-btn" data-cat="Complaint" onclick="setCategory(this)"><span class="cat-icon">⚠️</span>Complaint</button>
+            <button class="cat-btn" data-cat="Suggestion" onclick="setCategory(this)"><span class="cat-icon">💡</span>Suggestion</button>
+          </div>
+
+          <label>Your Rating</label>
+          <div class="stars-row" id="starsRow">
+            <span class="star" data-v="1">⭐</span>
+            <span class="star" data-v="2">⭐</span>
+            <span class="star" data-v="3">⭐</span>
+            <span class="star" data-v="4">⭐</span>
+            <span class="star" data-v="5">⭐</span>
+          </div>
+
+          <label>Title</label>
+          <input type="text" id="fTitle" placeholder="Give your feedback a clear, short title"/>
+
+          <label>Message</label>
+          <div class="textarea-wrap">
+            <textarea id="fMessage" placeholder="Describe your experience, issue, or idea in detail..." maxlength="500" oninput="updateCharCount()"></textarea>
+            <div class="char-count" id="charCount">0 / 500</div>
+          </div>
+
+          <button class="btn" id="submitBtn" onclick="submitFeedback()">Submit Feedback</button>
+        </div>
+      </div>
+
+      <!-- Right: Sidebar -->
+      <div class="sidebar">
+
+        <!-- Live Pulse Wall -->
+        <div class="card">
+          <div class="pulse-header">
+            <div class="pulse-dot"></div>
+            <div class="pulse-label">Live Pulse</div>
+          </div>
+          <div class="pulse-list" id="pulseList">
+            <div class="empty-state"><div class="empty-icon">📡</div><div class="empty-text">Live feedback will appear here once responses are approved.</div></div>
+          </div>
+        </div>
+
+        <!-- My History -->
+        <div class="card">
+          <div class="card-title">My Submissions</div>
+          <div id="historyList">
+            <div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">Your submitted feedback will appear here.</div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = 'http://localhost:5000/api';
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const token = localStorage.getItem('token');
+    if (!user || !token) window.location.href = 'index.html';
+    document.getElementById('navName').textContent = user?.name?.split(' ')[0] || '';
+
+    let selectedCategory = 'General';
+    let selectedRating = 0;
+
+    // Category selector
+    function setCategory(btn) {
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedCategory = btn.dataset.cat;
+    }
+
+    // Star rating with mood glow
+    document.querySelectorAll('.star').forEach(s => {
+      s.addEventListener('click', () => {
+        selectedRating = parseInt(s.dataset.v);
+        document.querySelectorAll('.star').forEach(st => st.classList.toggle('lit', parseInt(st.dataset.v) <= selectedRating));
+        // Mood glow
+        const card = document.getElementById('formCard');
+        card.classList.remove('mood-low','mood-mid','mood-high');
+        if (selectedRating <= 2) card.classList.add('mood-low');
+        else if (selectedRating === 3) card.classList.add('mood-mid');
+        else card.classList.add('mood-high');
+      });
+    });
+
+    // Character counter
+    function updateCharCount() {
+      const len = document.getElementById('fMessage').value.length;
+      const el = document.getElementById('charCount');
+      el.textContent = `${len} / 500`;
+      el.classList.remove('near','over');
+      if (len >= 450) el.classList.add('near');
+      if (len >= 500) el.classList.add('over');
+    }
+
+    function showMsg(text, type) {
+      const el = document.getElementById('formMsg');
+      el.textContent = text; el.className = `msg ${type}`;
+    }
+
+    async function submitFeedback() {
+      const title = document.getElementById('fTitle').value.trim();
+      const message = document.getElementById('fMessage').value.trim();
+      if (!title || !message) return showMsg('Please fill in the title and message.', 'error');
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true; btn.classList.add('btn-loading');
+      try {
+        const res = await fetch(`${API}/feedback/submit`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+          body: JSON.stringify({ category: selectedCategory, rating: selectedRating, title, message })
+        });
+        const data = await res.json();
+        if (!res.ok) return showMsg(data.message, 'error');
+        showMsg('Feedback submitted! We\'ll review it shortly. ✓', 'success');
+        document.getElementById('fTitle').value = '';
+        document.getElementById('fMessage').value = '';
+        updateCharCount();
+        selectedRating = 0;
+        document.querySelectorAll('.star').forEach(s => s.classList.remove('lit'));
+        document.getElementById('formCard').classList.remove('mood-low','mood-mid','mood-high');
+        loadHistory();
+      } catch { showMsg('Cannot reach server. Is it running?', 'error'); }
+      finally { btn.disabled = false; btn.classList.remove('btn-loading'); }
+    }
+
+    async function loadHistory() {
+      const list = document.getElementById('historyList');
+      try {
+        const res = await fetch(`${API}/feedback/my`, { headers:{'Authorization':`Bearer ${token}`} });
+        const data = await res.json();
+        if (!data.length) {
+          list.innerHTML = '<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">No feedback submitted yet. Share your first one! 👆</div></div>';
+          return;
+        }
+        list.innerHTML = data.map(f => `
+          <div class="fi">
+            <div class="fi-top">
+              <div class="fi-title">${f.title}</div>
+              <span class="badge badge-${f.status}">${f.status}</span>
+            </div>
+            <div class="fi-meta">${f.category}${f.rating ? ' · ' + '⭐'.repeat(f.rating) : ''} · ${new Date(f.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
+            ${f.adminNote ? `<div class="fi-note">Admin: "${f.adminNote}"</div>` : ''}
+          </div>
+        `).join('');
+      } catch { list.innerHTML = '<div class="empty-state"><div class="empty-text">Could not load history.</div></div>'; }
+    }
+
+    async function loadPulse() {
+      try {
+        const res = await fetch(`${API}/feedback/pulse`);
+        const data = await res.json();
+        const list = document.getElementById('pulseList');
+        if (!data.length) return;
+        list.innerHTML = data.map(f => `
+          <div class="pulse-item">
+            <div class="pulse-name">${f.userName.split(' ')[0]} ${f.userName.split(' ')[1]?.[0] || ''}.&nbsp;&nbsp;<span style="font-size:11px;color:var(--muted);font-weight:400">${f.category}</span></div>
+            <div class="pulse-stars">${'⭐'.repeat(f.rating)}</div>
+            <div class="pulse-msg">"${f.message}"</div>
+          </div>
+        `).join('');
+      } catch {}
+    }
+
+    function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+
+    loadHistory();
+    loadPulse();
+    setInterval(loadPulse, 15000); // Refresh pulse every 15s
+  </script>
+</body>
+</html>
