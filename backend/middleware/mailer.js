@@ -10,6 +10,14 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+transporter.verify(function (error, success) {
+  if (error) {
+    console.log('SMTP Error:', error);
+  } else {
+    console.log('SMTP Ready');
+  }
+});
+
 const sendOTPEmail = async (toEmail, otp, name) => {
   const mailOptions = {
     from: `"FeedbackHub" <feedbackhub.demo@gmail.com>`,
