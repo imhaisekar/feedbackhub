@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
 
 const sendOTPEmail = async (toEmail, otp, name) => {
   const mailOptions = {
-    from: `"FeedbackHub" <${process.env.EMAIL_USER}>`,
+    from: `"FeedbackHub" <feedbackhub.demo@gmail.com>`,
     to: toEmail,
     subject: 'Your FeedbackHub Verification Code',
     html: `
@@ -38,7 +38,7 @@ const sendStatusEmail = async (toEmail, name, title, status, adminNote) => {
   const emoji = status === 'approved' ? '✅' : '❌';
 
   const mailOptions = {
-    from: `"FeedbackHub" <${process.env.EMAIL_USER}>`,
+    from: `"FeedbackHub" <feedbackhub.demo@gmail.com>`,
     to: toEmail,
     subject: `Your feedback has been ${status} ${emoji}`,
     html: `
